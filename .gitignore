@@ -1,0 +1,11 @@
+/.cache/
+/.gocache/
+/bin/
+/vendor/
+/.idea/
+
+### macOS ###
+# General
+.DS_Store
+.AppleDouble
+.LSOverride

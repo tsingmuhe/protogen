@@ -1,4 +1,4 @@
-module protogen
+module github.com/tsingmuhe/protogen
 
 go 1.19
 

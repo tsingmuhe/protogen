@@ -73,6 +73,10 @@ func NewGenerator(req *pluginpb.CodeGeneratorRequest, plugin Plugin) (*Generator
 
 func (gen *Generator) GenerateFiles() {
 	for _, file := range gen.files {
+		if !file.Generate {
+			continue
+		}
+
 		err := gen.plugin.Generate(gen, file)
 		if err != nil {
 			gen.err = err
@@ -103,10 +107,6 @@ func (gen *Generator) Response() *pluginpb.CodeGeneratorResponse {
 	}
 
 	for _, g := range gen.genFiles {
-		if g.skip {
-			continue
-		}
-
 		content, err := g.Content()
 		if err != nil {
 			return &pluginpb.CodeGeneratorResponse{
@@ -139,7 +139,6 @@ func (gen *Generator) Response() *pluginpb.CodeGeneratorResponse {
 
 type GeneratedFile struct {
 	gen      *Generator
-	skip     bool
 	filename string
 	buf      bytes.Buffer
 }
@@ -152,14 +151,6 @@ func (gen *Generator) NewGeneratedFile(filename string) *GeneratedFile {
 
 	gen.genFiles = append(gen.genFiles, g)
 	return g
-}
-
-func (g *GeneratedFile) Skip() {
-	g.skip = true
-}
-
-func (g *GeneratedFile) Unskip() {
-	g.skip = false
 }
 
 func (g *GeneratedFile) P(v ...any) {

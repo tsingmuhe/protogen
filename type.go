@@ -12,14 +12,13 @@ import (
 // A File describes a .proto source file.
 type File struct {
 	Proto *descriptorpb.FileDescriptorProto
-	Desc  protoreflect.FileDescriptor
+
+	Desc protoreflect.FileDescriptor
 
 	Enums      []*Enum      // top-level enum declarations
 	Messages   []*Message   // top-level message declarations
 	Extensions []*Extension // top-level extension declarations
 	Services   []*Service   // top-level service declarations
-
-	Location Location
 
 	Generate bool // true if we should generate code for this file
 }
@@ -35,9 +34,8 @@ func newFile(gen *Generator, p *descriptorpb.FileDescriptorProto) (*File, error)
 	}
 
 	f := &File{
-		Desc:     desc,
-		Proto:    p,
-		Location: Location{SourceFile: desc.Path()},
+		Proto: p,
+		Desc:  desc,
 	}
 
 	for i, eds := 0, desc.Enums(); i < eds.Len(); i++ {
@@ -83,23 +81,15 @@ func newFile(gen *Generator, p *descriptorpb.FileDescriptorProto) (*File, error)
 type Enum struct {
 	Desc protoreflect.EnumDescriptor
 
-	Values   []*EnumValue // enum value declarations
-	Location Location     // location of this enum
-	Comments CommentSet   // comments associated with this enum
+	Values []*EnumValue // enum value declarations
+
+	Comments CommentSet // comments associated with this enum
 }
 
 func newEnum(gen *Generator, f *File, parent *Message, desc protoreflect.EnumDescriptor) *Enum {
-	var loc Location
-	if parent != nil {
-		loc = parent.Location.appendPath(Descriptorproto_EnumType_FieldNumber, desc.Index())
-	} else {
-		loc = f.Location.appendPath(FileDescriptorProto_EnumType_FieldNumber, desc.Index())
-	}
-
 	enum := &Enum{
 		Desc:     desc,
-		Location: loc,
-		Comments: makeCommentSet(f.Desc.SourceLocations().ByDescriptor(desc)),
+		Comments: MakeCommentSet(f.Desc.SourceLocations().ByDescriptor(desc)),
 	}
 	gen.enumsByName[desc.FullName()] = enum
 
@@ -116,17 +106,14 @@ type EnumValue struct {
 
 	Parent *Enum // enum in which this value is declared
 
-	Location Location   // location of this enum value
 	Comments CommentSet // comments associated with this enum value
 }
 
 func newEnumValue(gen *Generator, f *File, message *Message, enum *Enum, desc protoreflect.EnumValueDescriptor) *EnumValue {
-	loc := enum.Location.appendPath(Enumdescriptorproto_Value_FieldNumber, desc.Index())
 	return &EnumValue{
 		Desc:     desc,
 		Parent:   enum,
-		Location: loc,
-		Comments: makeCommentSet(f.Desc.SourceLocations().ByDescriptor(desc)),
+		Comments: MakeCommentSet(f.Desc.SourceLocations().ByDescriptor(desc)),
 	}
 }
 
@@ -141,22 +128,13 @@ type Message struct {
 	Messages   []*Message   // nested message declarations
 	Extensions []*Extension // nested extension declarations
 
-	Location Location   // location of this message
 	Comments CommentSet // comments associated with this message
 }
 
 func newMessage(gen *Generator, f *File, parent *Message, desc protoreflect.MessageDescriptor) *Message {
-	var loc Location
-	if parent != nil {
-		loc = parent.Location.appendPath(Descriptorproto_NestedType_FieldNumber, desc.Index())
-	} else {
-		loc = f.Location.appendPath(FileDescriptorProto_MessageType_FieldNumber, desc.Index())
-	}
-
 	message := &Message{
 		Desc:     desc,
-		Location: loc,
-		Comments: makeCommentSet(f.Desc.SourceLocations().ByDescriptor(desc)),
+		Comments: MakeCommentSet(f.Desc.SourceLocations().ByDescriptor(desc)),
 	}
 	gen.messagesByName[desc.FullName()] = message
 
@@ -225,28 +203,15 @@ type Field struct {
 	Enum     *Enum    // type for enum fields; nil otherwise
 	Message  *Message // type for message or group fields; nil otherwise
 
-	Location Location   // location of this field
 	Comments CommentSet // comments associated with this field
 }
 
 func newField(gen *Generator, f *File, message *Message, desc protoreflect.FieldDescriptor) *Field {
-	var loc Location
-	switch {
-	case desc.IsExtension() && message == nil:
-		loc = f.Location.appendPath(FileDescriptorProto_Extension_FieldNumber, desc.Index())
-	case desc.IsExtension() && message != nil:
-		loc = message.Location.appendPath(Descriptorproto_Extension_FieldNumber, desc.Index())
-	default:
-		loc = message.Location.appendPath(Descriptorproto_Field_FieldNumber, desc.Index())
-	}
-
 	field := &Field{
 		Desc:     desc,
 		Parent:   message,
-		Location: loc,
-		Comments: makeCommentSet(f.Desc.SourceLocations().ByDescriptor(desc)),
+		Comments: MakeCommentSet(f.Desc.SourceLocations().ByDescriptor(desc)),
 	}
-
 	return field
 }
 
@@ -289,17 +254,14 @@ type Oneof struct {
 
 	Fields []*Field // fields that are part of this oneof
 
-	Location Location   // location of this oneof
 	Comments CommentSet // comments associated with this oneof
 }
 
 func newOneof(gen *Generator, f *File, message *Message, desc protoreflect.OneofDescriptor) *Oneof {
-	loc := message.Location.appendPath(Descriptorproto_OneofDecl_FieldNumber, desc.Index())
 	return &Oneof{
 		Desc:     desc,
 		Parent:   message,
-		Location: loc,
-		Comments: makeCommentSet(f.Desc.SourceLocations().ByDescriptor(desc)),
+		Comments: MakeCommentSet(f.Desc.SourceLocations().ByDescriptor(desc)),
 	}
 }
 
@@ -311,16 +273,13 @@ type Service struct {
 	Desc protoreflect.ServiceDescriptor
 
 	Methods  []*Method  // service method declarations
-	Location Location   // location of this service
 	Comments CommentSet // comments associated with this service
 }
 
 func newService(gen *Generator, f *File, desc protoreflect.ServiceDescriptor) *Service {
-	loc := f.Location.appendPath(FileDescriptorProto_Service_FieldNumber, desc.Index())
 	service := &Service{
 		Desc:     desc,
-		Location: loc,
-		Comments: makeCommentSet(f.Desc.SourceLocations().ByDescriptor(desc)),
+		Comments: MakeCommentSet(f.Desc.SourceLocations().ByDescriptor(desc)),
 	}
 
 	for i, mds := 0, desc.Methods(); i < mds.Len(); i++ {
@@ -339,17 +298,14 @@ type Method struct {
 	Input  *Message
 	Output *Message
 
-	Location Location   // location of this method
 	Comments CommentSet // comments associated with this method
 }
 
 func newMethod(gen *Generator, f *File, service *Service, desc protoreflect.MethodDescriptor) *Method {
-	loc := service.Location.appendPath(Servicedescriptorproto_Method_FieldNumber, desc.Index())
 	method := &Method{
 		Desc:     desc,
 		Parent:   service,
-		Location: loc,
-		Comments: makeCommentSet(f.Desc.SourceLocations().ByDescriptor(desc)),
+		Comments: MakeCommentSet(f.Desc.SourceLocations().ByDescriptor(desc)),
 	}
 	return method
 }
@@ -374,22 +330,6 @@ func (method *Method) resolveDependencies(gen *Generator) error {
 	return nil
 }
 
-// A Location is a location in a .proto source file.
-//
-// See the google.protobuf.SourceCodeInfo documentation in descriptor.proto
-// for details.
-type Location struct {
-	SourceFile string
-	Path       protoreflect.SourcePath
-}
-
-// appendPath add elements to a Location's path, returning a new Location.
-func (loc Location) appendPath(num protoreflect.FieldNumber, idx int) Location {
-	loc.Path = append(protoreflect.SourcePath(nil), loc.Path...) // make copy
-	loc.Path = append(loc.Path, int32(num), int32(idx))
-	return loc
-}
-
 // CommentSet is a set of leading and trailing comments associated
 // with a .proto descriptor declaration.
 type CommentSet struct {
@@ -398,7 +338,7 @@ type CommentSet struct {
 	Trailing        Comments
 }
 
-func makeCommentSet(loc protoreflect.SourceLocation) CommentSet {
+func MakeCommentSet(loc protoreflect.SourceLocation) CommentSet {
 	var leadingDetached []Comments
 	for _, s := range loc.LeadingDetachedComments {
 		leadingDetached = append(leadingDetached, Comments(s))
@@ -429,3 +369,5 @@ func (c Comments) String() string {
 	}
 	return string(b)
 }
+
+//https://github.com/protocolbuffers/protobuf/blob/main/src/google/protobuf/descriptor.proto

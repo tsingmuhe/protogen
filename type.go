@@ -216,6 +216,10 @@ func (message *Message) resolveDependencies(gen *Generator) error {
 	return nil
 }
 
+func (message *Message) GetName() string {
+	return string(message.Desc.Name())
+}
+
 func (message *Message) GetJavaPackage() string {
 	fileDescriptor := message.Desc.ParentFile()
 	fileOptions := fileDescriptor.Options().(*descriptorpb.FileOptions)

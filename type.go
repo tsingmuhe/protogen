@@ -77,6 +77,30 @@ func newFile(gen *Generator, p *descriptorpb.FileDescriptorProto) (*File, error)
 	return f, nil
 }
 
+func (f *File) GetSourcePath() string {
+	return f.Desc.Path()
+}
+
+func (f *File) GetSyntax() string {
+	return f.Proto.GetSyntax()
+}
+
+func (f *File) GetPackage() string {
+	return f.Proto.GetPackage()
+}
+
+func (f *File) GetJavaPackage() string {
+	javaPackage := f.Proto.GetOptions().GetJavaPackage()
+	if len(javaPackage) == 0 {
+		javaPackage = f.Proto.GetPackage()
+	}
+	return javaPackage
+}
+
+func (f *File) GetDeprecated() bool {
+	return f.Proto.GetOptions().GetDeprecated()
+}
+
 // An Enum describes an enum.
 type Enum struct {
 	Desc protoreflect.EnumDescriptor
@@ -287,6 +311,10 @@ func newService(gen *Generator, f *File, desc protoreflect.ServiceDescriptor) *S
 	}
 
 	return service
+}
+
+func (s *Service) GetName() string {
+	return string(s.Desc.Name())
 }
 
 // A Method describes a method in a service.

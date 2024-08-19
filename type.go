@@ -372,6 +372,23 @@ func (method *Method) resolveDependencies(gen *Generator) error {
 	return nil
 }
 
+func (method *Method) GetName() string {
+	return string(method.Desc.Name())
+}
+
+func (method *Method) GetDeprecated() bool {
+	options := method.Desc.Options().(*descriptorpb.MethodOptions)
+	return options.GetDeprecated()
+}
+
+func (method *Method) GetInputStreaming() bool {
+	return method.Desc.IsStreamingClient()
+}
+
+func (method *Method) GetOutputStreaming() bool {
+	return method.Desc.IsStreamingServer()
+}
+
 // CommentSet is a set of leading and trailing comments associated
 // with a .proto descriptor declaration.
 type CommentSet struct {

@@ -216,6 +216,16 @@ func (message *Message) resolveDependencies(gen *Generator) error {
 	return nil
 }
 
+func (message *Message) GetJavaPackage() string {
+	fileDescriptor := message.Desc.ParentFile()
+	fileOptions := fileDescriptor.Options().(*descriptorpb.FileOptions)
+	javaPackage := fileOptions.GetJavaPackage()
+	if len(javaPackage) == 0 {
+		javaPackage = string(fileDescriptor.Package())
+	}
+	return javaPackage
+}
+
 // A Field describes a message field.
 type Field struct {
 	Desc protoreflect.FieldDescriptor
